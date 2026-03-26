@@ -2,10 +2,10 @@ import logging
 import os
 import json
 import datetime
+import threading
 import anthropic
-from telegram import (
-    Update, InlineKeyboardButton, InlineKeyboardMarkup,
-)
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes,
@@ -19,15 +19,15 @@ PRODUCTS = {
     "shahid": {
         "name": "👻 شاهد VIP",
         "items": [
-            {"id": "sh_1", "name": "شاهد ملف شهر",   "price": 6.99,  "desc": "ملف خاص + ضمان"},
-            {"id": "sh_2", "name": "شاهد إيميل شهر",  "price": 29.99, "desc": "إيميل خاص 4 ملفات"},
+            {"id": "sh_1", "name": "شاهد ملف شهر",    "price": 6.99,  "desc": "ملف خاص + ضمان"},
+            {"id": "sh_2", "name": "شاهد إيميل شهر",   "price": 29.99, "desc": "إيميل خاص 4 ملفات"},
         ]
     },
     "netflix": {
         "name": "🎬 نتفليكس",
         "items": [
-            {"id": "nf_1", "name": "نتفليكس ملف شهر",  "price": 8.99,  "desc": "ملف خاص + ضمان"},
-            {"id": "nf_2", "name": "نتفليكس إيميل شهر", "price": 32.99, "desc": "إيميل خاص 4 ملفات"},
+            {"id": "nf_1", "name": "نتفليكس ملف شهر",   "price": 8.99,  "desc": "ملف خاص + ضمان"},
+            {"id": "nf_2", "name": "نتفليكس إيميل شهر",  "price": 32.99, "desc": "إيميل خاص 4 ملفات"},
         ]
     }
 }
@@ -36,6 +36,21 @@ ORDERS_FILE = "orders.json"
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
+# ── Health Server عشان Railway ما يوقف البوت ──
+class Health(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+    def log_message(self, *args):
+        pass
+
+def run_health():
+    port = int(os.environ.get("PORT", 8080))
+    HTTPServer(("0.0.0.0", port), Health).serve_forever()
+
+threading.Thread(target=run_health, daemon=True).start()
+
+# ── مساعدات ──
 def load_orders():
     if os.path.exists(ORDERS_FILE):
         with open(ORDERS_FILE, "r", encoding="utf-8") as f:
@@ -56,6 +71,7 @@ def get_product_by_id(pid):
 def gen_order_id():
     return f"SH{len(load_orders()) + 1:04d}"
 
+# ── لوحات المفاتيح ──
 def main_menu():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🛍️ المنتجات والأسعار", callback_data="menu_products")],
@@ -84,6 +100,7 @@ def confirm_menu(pid):
 def back_btn():
     return InlineKeyboardMarkup([[InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="back_main")]])
 
+# ── Claude AI ──
 def ask_claude(question):
     try:
         client = anthropic.Anthropic(api_key=CLAUDE_KEY)
@@ -99,6 +116,7 @@ def ask_claude(question):
     except:
         return "عذراً حصل خطأ، تواصل معنا مباشرة 🙏"
 
+# ── Handlers ──
 async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👻 *أهلاً بك في شبح ستور!*\n\nمتجرك الموثوق للاشتراكات الرقمية 🎬\n\nاختر من القائمة 👇",
@@ -129,76 +147,11 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         oid = gen_order_id()
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         orders = load_orders()
-        orders[oid] = {"product": item["name"], "price": item["price"], "user_id": user.id,
-                       "username": user.username or "—", "name": user.full_name, "status": "قيد المعالجة", "time": now}
+        orders[oid] = {
+            "product": item["name"], "price": item["price"],
+            "user_id": user.id, "username": user.username or "—",
+            "name": user.full_name, "status": "قيد المعالجة", "time": now
+        }
         save_orders(orders)
         await q.edit_message_text(
-            f"✅ *تم استلام طلبك!*\n\n🔖 رقم الطلب: `{oid}`\n📦 {item['name']}\n💰 {item['price']} ريال\n\n📲 سيتواصل معك فريقنا قريباً.",
-            parse_mode="Markdown", reply_markup=back_btn()
-        )
-        try:
-            await ctx.bot.send_message(ADMIN_ID,
-                f"🔔 *طلب جديد!*\n\n🔖 `{oid}`\n👤 {user.full_name} (@{user.username or '—'})\n📦 {item['name']}\n💰 {item['price']} ريال\n🕐 {now}",
-                parse_mode="Markdown")
-        except: pass
-    elif data == "menu_track":
-        ctx.user_data["waiting_track"] = True
-        await q.edit_message_text("📦 أرسل رقم الطلب (مثال: SH0001)", reply_markup=back_btn())
-    elif data == "menu_contact":
-        await q.edit_message_text("💬 *تواصل معنا*\n\n🕐 9ص – 12م\n\nاكتب سؤالك هنا 👇", parse_mode="Markdown", reply_markup=back_btn())
-
-async def message_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.strip()
-    if ctx.user_data.get("waiting_track"):
-        ctx.user_data.pop("waiting_track")
-        orders = load_orders()
-        oid = text.upper()
-        if oid in orders:
-            o = orders[oid]
-            await update.message.reply_text(
-                f"📦 *طلب {oid}*\n\n🛍️ {o['product']}\n💰 {o['price']} ريال\n📋 الحالة: *{o['status']}*",
-                parse_mode="Markdown", reply_markup=back_btn())
-        else:
-            await update.message.reply_text("❌ رقم الطلب غير موجود.", reply_markup=back_btn())
-        return
-    await ctx.bot.send_chat_action(update.effective_chat.id, "typing")
-    await update.message.reply_text(ask_claude(text), reply_markup=back_btn())
-
-async def admin_update(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID or len(ctx.args) < 2: return
-    oid, status = ctx.args[0].upper(), " ".join(ctx.args[1:])
-    orders = load_orders()
-    if oid not in orders:
-        await update.message.reply_text(f"❌ {oid} غير موجود.")
-        return
-    orders[oid]["status"] = status
-    save_orders(orders)
-    try:
-        await ctx.bot.send_message(orders[oid]["user_id"],
-            f"🔔 *تحديث طلبك {oid}*\n\n📋 الحالة: *{status}*", parse_mode="Markdown")
-    except: pass
-    await update.message.reply_text(f"✅ تم تحديث {oid}")
-
-async def admin_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID: return
-    orders = load_orders()
-    if not orders:
-        await update.message.reply_text("لا يوجد طلبات.")
-        return
-    msg = "📋 *الطلبات:*\n\n"
-    for oid, o in list(orders.items())[-20:]:
-        msg += f"`{oid}` | {o['product']} | {o['status']}\n"
-    await update.message.reply_text(msg, parse_mode="Markdown")
-
-def main():
-    app = Application.builder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("update", admin_update))
-    app.add_handler(CommandHandler("orders", admin_orders))
-    app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
-    log.info("🚀 شبح ستور شغال!")
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
-
-if __name__ == "__main__":
-    main()
+            f"✅ *تم استلام طلبك!*\n\n🔖 رقم الطلب: `{oid}`\n📦 {item['name']}\n💰 {item[
