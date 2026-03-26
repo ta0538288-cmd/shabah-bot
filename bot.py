@@ -163,7 +163,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         txt = "✅ تم استلام طلبك!\n\n🔖 رقم الطلب: " + oid + "\n📦 " + item["name"] + "\n💰 " + str(item["price"]) + " ريال\n\n📲 سيتواصل معك فريقنا قريبا لاتمام الدفع والتسليم\n\n🕐 احتفظ برقم طلبك"
         await q.edit_message_text(txt, reply_markup=back_btn())
         try:
-            admin_txt = "🔔 طلب جديد!\n\n🔖 " + oid + "\n👤 " + user.full_name + " (@" + (user.username or "---") + ")\n📦 " + item["name"] + "\n💰 " + str(item["price"]) + " ريال\n🕐 " + now
+            admin_txt = "🔔 طلب جديد!\n\n🔖 " + oid + "\n👤 " + user.full_name + " (@" + (user.username or "---") + ")\n🆔 " + str(user.id) + "\n📦 " + item["name"] + "\n💰 " + str(item["price"]) + " ريال\n🕐 " + now + "\n\nللرد: /reply " + str(user.id) + " [رسالتك]"
             await ctx.bot.send_message(ADMIN_ID, admin_txt)
         except Exception as e:
             log.warning(e)
@@ -179,7 +179,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=back_btn()
         )
         try:
-            support_txt = "🆘 طلب دعم فني!\n\n👤 " + user.full_name + "\n📱 @" + (user.username or "---") + "\n🆔 " + str(user.id) + "\n🕐 " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            support_txt = "🆘 طلب دعم فني!\n\n👤 " + user.full_name + "\n📱 @" + (user.username or "---") + "\n🆔 " + str(user.id) + "\n🕐 " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M") + "\n\nللرد: /reply " + str(user.id) + " [رسالتك]"
             await ctx.bot.send_message(ADMIN_ID, support_txt)
         except Exception as e:
             log.warning(e)
@@ -229,11 +229,26 @@ async def admin_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         msg += oid + " | " + o["product"] + " | " + o["status"] + "\n"
     await update.message.reply_text(msg)
 
+async def admin_reply(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    if len(ctx.args) < 2:
+        await update.message.reply_text("الاستخدام:\n/reply [ID] [الرسالة]\n\nمثال:\n/reply 932148988 اهلا كيف اقدر اساعدك")
+        return
+    user_id = int(ctx.args[0])
+    message = " ".join(ctx.args[1:])
+    try:
+        await ctx.bot.send_message(user_id, "👻 شبح ستور:\n\n" + message)
+        await update.message.reply_text("✅ تم ارسال الرسالة")
+    except Exception as e:
+        await update.message.reply_text("❌ ما قدرت ارسل: " + str(e))
+
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("update", admin_update))
     app.add_handler(CommandHandler("orders", admin_orders))
+    app.add_handler(CommandHandler("reply", admin_reply))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
     log.info("شبح ستور شغال!")
