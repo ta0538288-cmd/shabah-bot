@@ -173,7 +173,12 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.edit_message_text("ارسل رقم الطلب مثال SH0001", reply_markup=back_btn())
 
     elif data == "menu_contact":
-        await q.edit_message_text("تواصل معنا\n\nاوقات العمل: 9 صباحا - 12 منتصف الليل\n\naكتب سؤالك هنا", reply_markup=back_btn())
+    await q.edit_message_text("تواصل معنا\n\nاوقات العمل: 9 صباحا - 12 منتصف الليل\n\nاكتب سؤالك هنا وبنرد عليك فوراً", reply_markup=back_btn())
+    try:
+        user = q.from_user
+        await ctx.bot.send_message(ADMIN_ID, "عميل يطلب دعم فني!\n\nالاسم: " + user.full_name + "\nاليوزر: @" + (user.username or "---") + "\nID: " + str(user.id))
+    except:
+        pass
 
 async def message_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
