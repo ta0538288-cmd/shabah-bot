@@ -19,15 +19,15 @@ PRODUCTS = {
     "shahid": {
         "name": "👻 شاهد VIP",
         "items": [
-            {"id": "sh_1", "name": "شاهد ملف شهر",   "price": 6.99,  "desc": "ملف خاص + ضمان"},
-            {"id": "sh_2", "name": "شاهد ايميل شهر",  "price": 29.99, "desc": "ايميل خاص 4 ملفات"},
+            {"id": "sh_1", "name": "شاهد ملف شهر",   "price": 6.99,  "desc": "ملف خاص + ضمان 30 يوم"},
+            {"id": "sh_2", "name": "شاهد ايميل شهر",  "price": 29.99, "desc": "ايميل خاص 4 ملفات + ضمان"},
         ]
     },
     "netflix": {
         "name": "🎬 نتفليكس",
         "items": [
-            {"id": "nf_1", "name": "نتفليكس ملف شهر",  "price": 8.99,  "desc": "ملف خاص + ضمان"},
-            {"id": "nf_2", "name": "نتفليكس ايميل شهر", "price": 32.99, "desc": "ايميل خاص 4 ملفات"},
+            {"id": "nf_1", "name": "نتفليكس ملف شهر",  "price": 8.99,  "desc": "ملف خاص + ضمان 30 يوم"},
+            {"id": "nf_2", "name": "نتفليكس ايميل شهر", "price": 32.99, "desc": "ايميل خاص 4 ملفات + ضمان"},
         ]
     }
 }
@@ -71,33 +71,33 @@ def gen_order_id():
 
 def main_menu():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("المنتجات والاسعار", callback_data="menu_products")],
-        [InlineKeyboardButton("اطلب الان", callback_data="menu_order"),
-         InlineKeyboardButton("تتبع طلبي", callback_data="menu_track")],
-        [InlineKeyboardButton("تواصل معنا", callback_data="menu_contact")],
+        [InlineKeyboardButton("🛍️ المنتجات والاسعار", callback_data="menu_products")],
+        [InlineKeyboardButton("🛒 اطلب الان", callback_data="menu_order"),
+         InlineKeyboardButton("📦 تتبع طلبي", callback_data="menu_track")],
+        [InlineKeyboardButton("🎧 الدعم الفني", callback_data="menu_contact")],
     ])
 
 def categories_menu():
     btns = [[InlineKeyboardButton(cat["name"], callback_data="cat_" + k)] for k, cat in PRODUCTS.items()]
-    btns.append([InlineKeyboardButton("رجوع", callback_data="back_main")])
+    btns.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_main")])
     return InlineKeyboardMarkup(btns)
 
 def products_menu(cat_key):
     cat = PRODUCTS[cat_key]
     btns = []
     for i in cat["items"]:
-        btns.append([InlineKeyboardButton(i["name"] + " - " + str(i["price"]) + " ريال", callback_data="item_" + i["id"])])
-    btns.append([InlineKeyboardButton("رجوع", callback_data="menu_products")])
+        btns.append([InlineKeyboardButton("✨ " + i["name"] + " — " + str(i["price"]) + " ريال", callback_data="item_" + i["id"])])
+    btns.append([InlineKeyboardButton("🔙 رجوع", callback_data="menu_products")])
     return InlineKeyboardMarkup(btns)
 
 def confirm_menu(pid):
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("تاكيد الطلب", callback_data="confirm_" + pid)],
-        [InlineKeyboardButton("الغاء", callback_data="menu_products")],
+        [InlineKeyboardButton("✅ تاكيد الطلب", callback_data="confirm_" + pid)],
+        [InlineKeyboardButton("❌ الغاء", callback_data="menu_products")],
     ])
 
 def back_btn():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("القائمة الرئيسية", callback_data="back_main")]])
+    return InlineKeyboardMarkup([[InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="back_main")]])
 
 def ask_claude(question):
     try:
@@ -111,11 +111,11 @@ def ask_claude(question):
         return msg.content[0].text
     except Exception as e:
         log.error(e)
-        return "عذرا حصل خطا، تواصل معنا مباشرة"
+        return "عذرا حصل خطا، تواصل معنا مباشرة 🙏"
 
 async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "اهلا بك في شبح ستور!\n\nمتجرك الموثوق للاشتراكات الرقمية\n\nاختر من القائمة",
+        "👻 اهلا بك في شبح ستور!\n\n🎬 متجرك الموثوق للاشتراكات الرقمية\n\n✅ شاهد VIP\n✅ نتفليكس\n\nاختر من القائمة 👇",
         reply_markup=main_menu()
     )
 
@@ -125,22 +125,22 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await q.answer()
 
     if data == "back_main":
-        await q.edit_message_text("اهلا بك في شبح ستور!\n\nاختر من القائمة", reply_markup=main_menu())
+        await q.edit_message_text("👻 اهلا بك في شبح ستور!\n\nاختر من القائمة 👇", reply_markup=main_menu())
 
     elif data == "menu_products" or data == "menu_order":
-        await q.edit_message_text("اختر الفئة:", reply_markup=categories_menu())
+        await q.edit_message_text("🛍️ اختر الفئة:", reply_markup=categories_menu())
 
     elif data.startswith("cat_"):
         cat_key = data[4:]
         cat = PRODUCTS[cat_key]
-        await q.edit_message_text(cat["name"] + "\n\nاختر المنتج", reply_markup=products_menu(cat_key))
+        await q.edit_message_text(cat["name"] + "\n\nاختر المنتج 👇", reply_markup=products_menu(cat_key))
 
     elif data.startswith("item_"):
         pid = data[5:]
         item = get_product_by_id(pid)
         if not item:
             return
-        txt = "المنتج: " + item["name"] + "\nالسعر: " + str(item["price"]) + " ريال\n" + item["desc"] + "\n\nتبي تطلب؟"
+        txt = "📦 " + item["name"] + "\n\n💰 السعر: " + str(item["price"]) + " ريال\nℹ️ " + item["desc"] + "\n\nتبي تطلب هذا المنتج؟"
         await q.edit_message_text(txt, reply_markup=confirm_menu(item["id"]))
 
     elif data.startswith("confirm_"):
@@ -160,25 +160,29 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             "time": now
         }
         save_orders(orders)
-        txt = "تم استلام طلبك!\n\nرقم الطلب: " + oid + "\nالمنتج: " + item["name"] + "\nالمبلغ: " + str(item["price"]) + " ريال\n\nسيتواصل معك فريقنا قريبا"
+        txt = "✅ تم استلام طلبك!\n\n🔖 رقم الطلب: " + oid + "\n📦 " + item["name"] + "\n💰 " + str(item["price"]) + " ريال\n\n📲 سيتواصل معك فريقنا قريبا لاتمام الدفع والتسليم\n\n🕐 احتفظ برقم طلبك"
         await q.edit_message_text(txt, reply_markup=back_btn())
         try:
-            admin_txt = "طلب جديد!\n\nرقم: " + oid + "\nالعميل: " + user.full_name + "\nالمنتج: " + item["name"] + "\nالمبلغ: " + str(item["price"]) + " ريال\nالوقت: " + now
+            admin_txt = "🔔 طلب جديد!\n\n🔖 " + oid + "\n👤 " + user.full_name + " (@" + (user.username or "---") + ")\n📦 " + item["name"] + "\n💰 " + str(item["price"]) + " ريال\n🕐 " + now
             await ctx.bot.send_message(ADMIN_ID, admin_txt)
         except Exception as e:
             log.warning(e)
 
     elif data == "menu_track":
         ctx.user_data["waiting_track"] = True
-        await q.edit_message_text("ارسل رقم الطلب مثال SH0001", reply_markup=back_btn())
+        await q.edit_message_text("📦 ارسل رقم الطلب\nمثال: SH0001", reply_markup=back_btn())
 
     elif data == "menu_contact":
-    await q.edit_message_text("تواصل معنا\n\nاوقات العمل: 9 صباحا - 12 منتصف الليل\n\nاكتب سؤالك هنا وبنرد عليك فوراً", reply_markup=back_btn())
-    try:
         user = q.from_user
-        await ctx.bot.send_message(ADMIN_ID, "عميل يطلب دعم فني!\n\nالاسم: " + user.full_name + "\nاليوزر: @" + (user.username or "---") + "\nID: " + str(user.id))
-    except:
-        pass
+        await q.edit_message_text(
+            "🎧 الدعم الفني\n\nتم تحويلك لفريق الدعم\nسيتواصل معك احد المختصين خلال دقائق ⚡\n\n🕐 اوقات العمل: 9ص - 12م",
+            reply_markup=back_btn()
+        )
+        try:
+            support_txt = "🆘 طلب دعم فني!\n\n👤 " + user.full_name + "\n📱 @" + (user.username or "---") + "\n🆔 " + str(user.id) + "\n🕐 " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            await ctx.bot.send_message(ADMIN_ID, support_txt)
+        except Exception as e:
+            log.warning(e)
 
 async def message_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
@@ -188,10 +192,10 @@ async def message_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         oid = text.upper()
         if oid in orders:
             o = orders[oid]
-            txt = "طلب " + oid + "\n\nالمنتج: " + o["product"] + "\nالمبلغ: " + str(o["price"]) + " ريال\nالحالة: " + o["status"]
+            txt = "📦 طلب " + oid + "\n\n🛍️ " + o["product"] + "\n💰 " + str(o["price"]) + " ريال\n📋 الحالة: " + o["status"] + "\n🕐 " + o["time"]
             await update.message.reply_text(txt, reply_markup=back_btn())
         else:
-            await update.message.reply_text("رقم الطلب غير موجود", reply_markup=back_btn())
+            await update.message.reply_text("❌ رقم الطلب غير موجود\nتاكد من الرقم وحاول مجددا", reply_markup=back_btn())
         return
     await ctx.bot.send_chat_action(update.effective_chat.id, "typing")
     await update.message.reply_text(ask_claude(text), reply_markup=back_btn())
@@ -203,24 +207,24 @@ async def admin_update(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     status = " ".join(ctx.args[1:])
     orders = load_orders()
     if oid not in orders:
-        await update.message.reply_text("الطلب " + oid + " غير موجود")
+        await update.message.reply_text("❌ الطلب " + oid + " غير موجود")
         return
     orders[oid]["status"] = status
     save_orders(orders)
     try:
-        await ctx.bot.send_message(orders[oid]["user_id"], "تحديث طلبك " + oid + "\nالحالة: " + status)
+        await ctx.bot.send_message(orders[oid]["user_id"], "🔔 تحديث طلبك " + oid + "\n\n📋 الحالة: " + status)
     except Exception:
         pass
-    await update.message.reply_text("تم تحديث " + oid)
+    await update.message.reply_text("✅ تم تحديث " + oid + " الى: " + status)
 
 async def admin_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
     orders = load_orders()
     if not orders:
-        await update.message.reply_text("لا يوجد طلبات")
+        await update.message.reply_text("📭 لا يوجد طلبات")
         return
-    msg = "الطلبات:\n\n"
+    msg = "📋 اخر الطلبات:\n\n"
     for oid, o in list(orders.items())[-20:]:
         msg += oid + " | " + o["product"] + " | " + o["status"] + "\n"
     await update.message.reply_text(msg)
